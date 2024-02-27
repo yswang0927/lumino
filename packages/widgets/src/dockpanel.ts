@@ -7,7 +7,7 @@
 |
 | The full license is in the file LICENSE, distributed with this software.
 |----------------------------------------------------------------------------*/
-import { find } from '@lumino/algorithm';
+import { each, find } from '@lumino/algorithm';
 
 import { MimeData } from '@lumino/coreutils';
 
@@ -53,6 +53,9 @@ export class DockPanel extends Widget {
     }
     if (options.addButtonEnabled !== undefined) {
       this._addButtonEnabled = options.addButtonEnabled;
+    }
+    if (options.tabScrollingEnabled !== undefined) {
+      this._tabScrollingEnabled = options.tabScrollingEnabled;
     }
 
     // Toggle the CSS mode attribute.
@@ -192,9 +195,9 @@ export class DockPanel extends Widget {
     // Configure the layout for the specified mode.
     switch (value) {
       case 'multiple-document':
-        for (const tabBar of layout.tabBars()) {
+        each(layout.tabBars(), tabBar => {
           tabBar.show();
-        }
+        });
         break;
       case 'single-document':
         layout.restoreLayout(Private.createSingleDocumentConfig(this));
@@ -219,9 +222,9 @@ export class DockPanel extends Widget {
    */
   set tabsMovable(value: boolean) {
     this._tabsMovable = value;
-    for (const tabBar of this.tabBars()) {
-      tabBar.tabsMovable = value;
-    }
+    each(this.tabBars(), tabbar => {
+      tabbar.tabsMovable = value;
+    });
   }
 
   /**
@@ -250,9 +253,26 @@ export class DockPanel extends Widget {
    */
   set addButtonEnabled(value: boolean) {
     this._addButtonEnabled = value;
-    for (const tabBar of this.tabBars()) {
-      tabBar.addButtonEnabled = value;
-    }
+    each(this.tabBars(), tabbar => {
+      tabbar.addButtonEnabled = value;
+    });
+  }
+
+  /**
+   * Whether scrolling of tabs in tab bars is enabled.
+   */
+  get tabScrollingEnabled(): boolean {
+    return this._tabScrollingEnabled;
+  }
+
+  /**
+   * Set whether the add buttons for each tab bar are enabled.
+   */
+  set tabScrollingEnabled(value: boolean) {
+    this._tabScrollingEnabled = value;
+    each(this.tabBars(), tabbar => {
+      tabbar.scrollingEnabled = value;
+    });
   }
 
   /**
@@ -551,7 +571,7 @@ export class DockPanel extends Widget {
   private _evtDragOver(event: Drag.Event): void {
     // Mark the event as handled.
     event.preventDefault();
-
+    
     // Show the drop indicator overlay and update the drop
     // action based on the drop target zone under the mouse.
     if (
@@ -571,7 +591,7 @@ export class DockPanel extends Widget {
   private _evtDrop(event: Drag.Event): void {
     // Mark the event as handled.
     event.preventDefault();
-
+    
     // Hide the drop indicator overlay.
     this.overlay.hide(0);
 
@@ -884,14 +904,13 @@ export class DockPanel extends Widget {
         right = target!.right;
         bottom = target!.bottom;
         break;
-      case 'widget-tab': {
+      case 'widget-tab':
         const tabHeight = target!.tabBar.node.getBoundingClientRect().height;
         top = target!.top;
         left = target!.left;
         right = target!.right;
         bottom = target!.bottom + target!.height - tabHeight;
         break;
-      }
       default:
         throw 'unreachable';
     }
@@ -923,6 +942,7 @@ export class DockPanel extends Widget {
     tabBar.tabsMovable = this._tabsMovable;
     tabBar.allowDeselect = false;
     tabBar.addButtonEnabled = this._addButtonEnabled;
+    tabBar.scrollingEnabled = this._tabScrollingEnabled;
     tabBar.removeBehavior = 'select-previous-tab';
     tabBar.insertBehavior = 'select-tab-if-needed';
 
@@ -1067,6 +1087,7 @@ export class DockPanel extends Widget {
   private _tabsMovable: boolean = true;
   private _tabsConstrained: boolean = false;
   private _addButtonEnabled: boolean = false;
+  private _tabScrollingEnabled: boolean = false;
   private _pressData: Private.IPressData | null = null;
   private _layoutModified = new Signal<this, void>(this);
 
@@ -1149,6 +1170,13 @@ export namespace DockPanel {
      * The default is `'false'`.
      */
     addButtonEnabled?: boolean;
+
+    /**
+     * Enable scrolling in each of the dock panel's tab bars.
+     *
+     * The default is `'false'`.
+     */
+    tabScrollingEnabled?: boolean;
   }
 
   /**
